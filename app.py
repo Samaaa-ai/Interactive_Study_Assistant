@@ -1,16 +1,15 @@
-
 import streamlit as st
 from google import genai
+from google.genai import types
 
 # ============================================================
-# PAGE CONFIGURATION
+# PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
     page_title="StudyMate AI",
     page_icon="📚",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 # ============================================================
@@ -20,79 +19,82 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-    .main {
-        background-color: #f8fafc;
-    }
+.main {
+    background-color: #0e1117;
+}
 
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        max-width: 1200px;
-    }
+.block-container {
+    max-width: 1200px;
+    padding-top: 2rem;
+}
 
-    .hero {
-        padding: 28px;
-        border-radius: 18px;
-        background: linear-gradient(135deg, #172554, #1e3a8a);
-        color: white;
-        margin-bottom: 25px;
-    }
+.hero {
+    padding: 30px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #172554, #1e40af);
+    color: white;
+    margin-bottom: 25px;
+}
 
-    .hero h1 {
-        font-size: 38px;
-        margin-bottom: 8px;
-    }
+.hero h1 {
+    font-size: 40px;
+    margin-bottom: 8px;
+}
 
-    .hero p {
-        font-size: 17px;
-        opacity: 0.9;
-    }
+.hero p {
+    font-size: 17px;
+    opacity: 0.9;
+}
 
-    .feature-card {
-        padding: 18px;
-        border-radius: 14px;
-        background-color: white;
-        border: 1px solid #e5e7eb;
-        margin-bottom: 10px;
-    }
-
-    .study-tip {
-        padding: 16px;
-        border-left: 4px solid #2563eb;
-        background-color: #eff6ff;
-        border-radius: 8px;
-        margin-top: 15px;
-    }
-
-    .stButton > button {
-        border-radius: 10px;
-        font-weight: 600;
-    }
+.study-card {
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid #30363d;
+    background: #161b22;
+}
 
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================
-# GEMINI CONFIGURATION
+# GEMINI API
 # ============================================================
 
-api_key = None
-
 try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-except Exception:
-    pass
 
-if not api_key:
-    st.error(
-        "Gemini API key is not configured. "
-        "Add GEMINI_API_KEY in Streamlit Secrets."
-    )
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+
+except Exception:
+
+    st.error("""
+    🔐 Gemini API key is missing.
+
+    Go to:
+
+    Streamlit → Manage app → Settings → Secrets
+
+    and add:
+
+    GEMINI_API_KEY = "YOUR_API_KEY"
+    """)
+
     st.stop()
 
-client = genai.Client(api_key=api_key)
 
-MODEL_NAME = "gemini-2.5-flash"
+try:
+
+    client = genai.Client(api_key=API_KEY)
+
+except Exception as e:
+
+    st.error("❌ Gemini client could not be initialized.")
+
+    st.code(str(e))
+
+    st.stop()
+
+
+MODEL = "gemini-2.5-flash"
 
 # ============================================================
 # SESSION STATE
@@ -113,12 +115,14 @@ if "quiz" not in st.session_state:
 
 st.markdown("""
 <div class="hero">
-    <h1>📚 StudyMate AI</h1>
-    <p>
-        Your interactive AI-powered study assistant for
-        understanding concepts, creating notes, practicing questions,
-        and preparing for exams.
-    </p>
+
+<h1>📚 StudyMate AI</h1>
+
+<p>
+Your intelligent study companion for understanding concepts,
+creating notes, practicing questions, and preparing for exams.
+</p>
+
 </div>
 """, unsafe_allow_html=True)
 
@@ -134,9 +138,9 @@ with st.sidebar:
         "Select Subject",
         [
             "General",
-            "C++ Programming",
             "Artificial Intelligence",
             "Advanced DBMS",
+            "C++ Programming",
             "Python Programming",
             "Web Development",
             "Mathematics",
@@ -145,7 +149,7 @@ with st.sidebar:
         ]
     )
 
-    study_level = st.selectbox(
+    level = st.selectbox(
         "Study Level",
         [
             "Beginner",
@@ -154,7 +158,7 @@ with st.sidebar:
         ]
     )
 
-    response_style = st.selectbox(
+    style = st.selectbox(
         "Explanation Style",
         [
             "Simple & Easy",
@@ -167,177 +171,188 @@ with st.sidebar:
 
     st.divider()
 
-    st.subheader("⚡ Quick Actions")
+    st.markdown("### ⚡ Quick Actions")
 
-    if st.button("📝 Create Notes", use_container_width=True):
-        st.session_state.quick_action = "notes"
+    create_notes = st.button(
+        "📝 Create Notes",
+        use_container_width=True
+    )
 
-    if st.button("❓ Practice Questions", use_container_width=True):
-        st.session_state.quick_action = "questions"
+    practice_questions = st.button(
+        "❓ Practice Questions",
+        use_container_width=True
+    )
 
-    if st.button("🧠 Generate Quiz", use_container_width=True):
-        st.session_state.quick_action = "quiz"
+    generate_quiz = st.button(
+        "🧠 Generate Quiz",
+        use_container_width=True
+    )
 
-    if st.button("📖 Explain Simply", use_container_width=True):
-        st.session_state.quick_action = "simple"
+    explain_simple = st.button(
+        "📖 Explain Simply",
+        use_container_width=True
+    )
 
     st.divider()
 
-    if st.button("🗑️ Clear Conversation", use_container_width=True):
+    if st.button(
+        "🗑️ Clear Conversation",
+        use_container_width=True
+    ):
+
         st.session_state.messages = []
         st.rerun()
 
-    st.markdown("""
-    <div class="study-tip">
-        <b>💡 Study Tip</b><br><br>
-        Ask specific questions and include the topic,
-        chapter, or concept you are currently studying.
-    </div>
-    """, unsafe_allow_html=True)
-
 # ============================================================
-# MAIN TABS
+# AI FUNCTION
 # ============================================================
 
-tab1, tab2, tab3 = st.tabs([
-    "💬 Study Assistant",
-    "📝 Notes Generator",
-    "🧠 Quiz Generator"
-])
-
-# ============================================================
-# COMMON AI FUNCTION
-# ============================================================
-
-def generate_response(prompt):
+def ask_gemini(user_prompt):
 
     system_instruction = f"""
-You are StudyMate AI, a professional educational study assistant.
+You are StudyMate AI, a professional AI study assistant.
 
-Your ONLY purpose is education and academic learning.
+Your purpose is ONLY academic learning and education.
 
-Current subject:
+Student subject:
 {subject}
 
 Student level:
-{study_level}
+{level}
 
 Preferred explanation style:
-{response_style}
+{style}
 
-STRICT RULES:
+STRICT EDUCATIONAL RULES:
 
-1. Answer only study, education, academic, learning,
-   programming, mathematics, science, technology,
-   exam-preparation, or career-learning questions.
+1. Only answer study-related and academic questions.
 
-2. Do NOT engage in unrelated conversations.
+2. You may help with:
+   - Concepts
+   - Programming
+   - Mathematics
+   - Science
+   - Artificial Intelligence
+   - Databases
+   - Exam preparation
+   - Assignments
+   - Revision
+   - Practice questions
+   - Notes
+   - Examples
+   - Problem solving
 
-3. If the user asks something unrelated to education,
-   politely say:
-   "I'm designed specifically for study and academic
-   learning. Please ask me a study-related question."
+3. If the question is unrelated to education,
+   respond:
 
-4. Explain concepts accurately and clearly.
+   "I'm StudyMate AI, designed specifically for
+   academic learning. Please ask me a study-related
+   question."
 
-5. Use examples whenever useful.
+4. Explain concepts clearly.
 
-6. For programming questions:
-   - Explain the logic.
-   - Provide clean code when requested.
-   - Explain the important parts of the code.
+5. Use examples when useful.
 
-7. For mathematical questions:
-   - Show the steps.
-   - Explain formulas.
-   - Provide the final answer clearly.
+6. For programming:
+   Explain the logic and provide clean code when needed.
+
+7. For mathematics:
+   Show the solution step-by-step.
 
 8. For exam preparation:
-   - Highlight important points.
-   - Mention definitions.
-   - Give likely practice questions when appropriate.
+   Highlight important points.
 
-9. Never intentionally help a student cheat in a live examination.
-   Instead, provide concept explanations and practice guidance.
+9. Do not help students cheat during a live examination.
 
-10. Do not pretend to know information that you are uncertain about.
+10. Do not invent facts.
 
-11. Keep responses structured using headings,
-    bullet points, numbered steps, tables,
-    and examples where appropriate.
+11. Keep answers structured and easy to revise.
 
-User request:
-{prompt}
+Student request:
+
+{user_prompt}
 """
 
     response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=system_instruction
+        model=MODEL,
+        contents=user_prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            max_output_tokens=1500
+        )
     )
 
     return response.text
 
 
 # ============================================================
-# TAB 1 - CHAT ASSISTANT
+# TABS
 # ============================================================
 
-with tab1:
+tab_chat, tab_notes, tab_quiz = st.tabs([
+    "💬 Study Assistant",
+    "📝 Notes Generator",
+    "🧠 Quiz Generator"
+])
 
-    st.subheader("💬 Ask Your Study Assistant")
+# ============================================================
+# STUDY ASSISTANT
+# ============================================================
+
+with tab_chat:
+
+    st.subheader("💬 Ask StudyMate")
 
     st.caption(
-        "Ask questions, clarify concepts, solve academic problems, "
-        "or prepare for exams."
+        "Ask questions and get clear, structured explanations."
     )
 
-    # Display conversation
     for message in st.session_state.messages:
 
         with st.chat_message(message["role"]):
+
             st.markdown(message["content"])
 
-    user_input = st.chat_input(
+    question = st.chat_input(
         "Ask a study-related question..."
     )
 
-    if user_input:
+    if question:
 
         st.session_state.messages.append({
             "role": "user",
-            "content": user_input
+            "content": question
         })
 
         with st.chat_message("user"):
-            st.markdown(user_input)
+            st.markdown(question)
 
         with st.chat_message("assistant"):
 
-            with st.spinner("📚 Studying your question..."):
+            with st.spinner("📚 Thinking..."):
 
                 try:
 
-                    context = ""
+                    conversation = ""
 
-                    # Include recent conversation
-                    recent_messages = st.session_state.messages[-8:]
+                    for message in st.session_state.messages[-10:]:
 
-                    for msg in recent_messages:
-                        context += (
-                            f"{msg['role'].upper()}: "
-                            f"{msg['content']}\n\n"
+                        conversation += (
+                            message["role"].upper()
+                            + ": "
+                            + message["content"]
+                            + "\n\n"
                         )
 
-                    prompt = f"""
-Continue this educational conversation.
+                    answer = ask_gemini(
+                        f"""
+Conversation history:
 
-Conversation:
-{context}
+{conversation}
 
 Answer the latest student question.
 """
-
-                    answer = generate_response(prompt)
+                    )
 
                     st.markdown(answer)
 
@@ -349,29 +364,33 @@ Answer the latest student question.
                 except Exception as e:
 
                     st.error(
-                        "Unable to generate a response. "
-                        "Please check your Gemini API configuration."
+                        "❌ Gemini request failed."
                     )
 
+                    st.warning(
+                        "The exact error is shown below. "
+                        "This will tell us whether the problem "
+                        "is the API key, model, quota, or permissions."
+                    )
+
+                    st.code(str(e))
+
+
 # ============================================================
-# TAB 2 - NOTES GENERATOR
+# NOTES GENERATOR
 # ============================================================
 
-with tab2:
+with tab_notes:
 
     st.subheader("📝 Smart Notes Generator")
 
-    st.write(
-        "Enter a topic and generate structured study notes."
-    )
-
-    notes_topic = st.text_input(
-        "Topic",
+    topic = st.text_input(
+        "Enter Topic",
         placeholder="Example: Normalization in DBMS"
     )
 
-    notes_length = st.selectbox(
-        "Notes Length",
+    notes_type = st.selectbox(
+        "Notes Type",
         [
             "Short Revision Notes",
             "Detailed Notes",
@@ -384,62 +403,79 @@ with tab2:
         use_container_width=True
     ):
 
-        if not notes_topic.strip():
+        if not topic.strip():
 
-            st.warning("Please enter a topic.")
+            st.warning(
+                "Please enter a topic first."
+            )
 
         else:
 
             prompt = f"""
-Create professional study notes on:
+Create professional study notes.
 
-Topic: {notes_topic}
+Subject:
+{subject}
 
-Notes type: {notes_length}
+Topic:
+{topic}
 
-Structure the notes using:
+Notes type:
+{notes_type}
 
-1. Definition
-2. Key concepts
-3. Important points
-4. Examples
-5. Advantages / disadvantages where relevant
-6. Important formulas or syntax if applicable
-7. Exam-focused points
-8. Quick revision summary
+Student level:
+{level}
 
-The notes must be educational, accurate,
-clear, and easy for a student to revise.
+Include:
+
+• Definition
+• Key concepts
+• Important points
+• Examples
+• Applications where relevant
+• Advantages and disadvantages where relevant
+• Important formulas or syntax
+• Exam-focused points
+• Quick revision summary
+
+Make the notes clear, accurate,
+well-structured and easy to study.
 """
 
-            with st.spinner("📝 Creating your notes..."):
+            with st.spinner(
+                "📝 Creating study notes..."
+            ):
 
                 try:
 
-                    result = generate_response(prompt)
+                    result = ask_gemini(prompt)
 
                     st.session_state.notes = result
 
-                except Exception:
+                except Exception as e:
 
                     st.error(
-                        "Unable to generate notes. "
-                        "Please check your API configuration."
+                        "❌ Gemini request failed."
                     )
+
+                    st.code(str(e))
 
     if st.session_state.notes:
 
-        st.markdown("---")
+        st.divider()
 
-        st.markdown(st.session_state.notes)
+        st.markdown(
+            st.session_state.notes
+        )
+
 
 # ============================================================
-# TAB 3 - QUIZ GENERATOR
+# QUIZ GENERATOR
 # ============================================================
 
-with tab3:
+with tab_quiz:
 
-    st.subheader("🧠 Interactive Quiz Generator")
+    st.subheader("🧠 Practice Quiz")
 
     quiz_topic = st.text_input(
         "Quiz Topic",
@@ -450,11 +486,11 @@ with tab3:
 
     with col1:
 
-        number_questions = st.slider(
+        question_count = st.slider(
             "Number of Questions",
-            min_value=3,
-            max_value=15,
-            value=5
+            3,
+            15,
+            5
         )
 
     with col2:
@@ -476,66 +512,75 @@ with tab3:
 
         if not quiz_topic.strip():
 
-            st.warning("Please enter a quiz topic.")
+            st.warning(
+                "Please enter a quiz topic."
+            )
 
         else:
 
             prompt = f"""
-Create a study quiz.
+Create an academic practice quiz.
+
+Subject:
+{subject}
 
 Topic:
 {quiz_topic}
 
-Number of questions:
-{number_questions}
-
 Difficulty:
 {difficulty}
 
+Number of questions:
+{question_count}
+
 Create multiple-choice questions.
 
-For every question provide:
+Format:
 
-Question
+Question 1
+
 A. Option
 B. Option
 C. Option
 D. Option
 
-Do NOT immediately reveal the answers.
+Continue for all questions.
 
-After all questions, provide:
+After all questions provide:
 
 ANSWER KEY
 
-with the correct option for each question.
-
-Then provide a short explanation
+Then provide short explanations
 for each correct answer.
 
-This is strictly for academic practice.
+This quiz is strictly for academic practice.
 """
 
-            with st.spinner("🧠 Preparing your quiz..."):
+            with st.spinner(
+                "🧠 Creating your quiz..."
+            ):
 
                 try:
 
-                    result = generate_response(prompt)
+                    result = ask_gemini(prompt)
 
                     st.session_state.quiz = result
 
-                except Exception:
+                except Exception as e:
 
                     st.error(
-                        "Unable to generate quiz. "
-                        "Please check your API configuration."
+                        "❌ Gemini request failed."
                     )
+
+                    st.code(str(e))
 
     if st.session_state.quiz:
 
-        st.markdown("---")
+        st.divider()
 
-        st.markdown(st.session_state.quiz)
+        st.markdown(
+            st.session_state.quiz
+        )
 
 # ============================================================
 # FOOTER
@@ -545,5 +590,5 @@ st.divider()
 
 st.caption(
     "📚 StudyMate AI • Powered by Gemini • "
-    "Designed for educational and academic purposes"
+    "For educational purposes"
 )
